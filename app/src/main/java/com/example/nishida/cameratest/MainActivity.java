@@ -2,6 +2,7 @@ package com.example.nishida.cameratest;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
@@ -70,6 +71,9 @@ public class MainActivity extends AppCompatActivity {
     private Handler mBackgroundHandler;
     private HandlerThread mBackgroundThread;
 
+    //保存ファイル名
+    private String filename;
+
     CameraDevice.StateCallback stateCallback = new CameraDevice.StateCallback() {
         @Override
         public void onOpened(@NonNull CameraDevice camera) {
@@ -94,6 +98,9 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        //縦固定
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 
         textureView = (TextureView)findViewById(R.id.textureView);
         //From Java 1.4 , you can use keyword 'assert' to check expression true or false
@@ -140,7 +147,10 @@ public class MainActivity extends AppCompatActivity {
             int rotation = getWindowManager().getDefaultDisplay().getRotation();
             captureBuilder.set(CaptureRequest.JPEG_ORIENTATION,ORIENTATIONS.get(rotation));
 
-            file = new File(Environment.getExternalStorageDirectory()+"/"+UUID.randomUUID().toString()+".jpg");
+            //撮影画像を保存する際のファイル名設定
+            filename = UUID.randomUUID().toString()+".jpg";
+            file = new File(Environment.getExternalStorageDirectory()+"/"+filename);
+
             ImageReader.OnImageAvailableListener readerListener = new ImageReader.OnImageAvailableListener() {
                 @Override
                 public void onImageAvailable(ImageReader imageReader) {
@@ -170,9 +180,14 @@ public class MainActivity extends AppCompatActivity {
                 }
                 private void save(byte[] bytes) throws IOException {
                     OutputStream outputStream = null;
-                    try{
+                    try {
                         outputStream = new FileOutputStream(file);
                         outputStream.write(bytes);
+                        //TODO DBへの登録
+                        Toast.makeText(MainActivity.this, "画像ファイル名:"+filename, Toast.LENGTH_SHORT).show();
+                    } catch (Exception e){
+                        e.printStackTrace();
+                        Toast.makeText(MainActivity.this, "メディアファイルへのアクセスが許可されていないため撮影画像の保存ができません", Toast.LENGTH_LONG).show();
                     }finally {
                         if(outputStream != null)
                             outputStream.close();
@@ -185,8 +200,9 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
                     super.onCaptureCompleted(session, request, result);
-                    Toast.makeText(MainActivity.this, "Saved "+file, Toast.LENGTH_SHORT).show();
+                    //Toast.makeText(MainActivity.this, "Saved "+file, Toast.LENGTH_SHORT).show();
                     createCameraPreview();
+                    //TODO 画面遷移
                 }
             };
 
